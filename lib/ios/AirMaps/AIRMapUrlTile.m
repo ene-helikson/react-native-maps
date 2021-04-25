@@ -60,7 +60,7 @@
     if (!_urlTemplateSet) return;
     self.tileOverlay = [[MKTileOverlay alloc] initWithURLTemplate:self.urlTemplate];
 
-    self.tileOverlay.canReplaceMapContent = self.shouldReplaceMapContent;
+    self.tileOverlay.canReplaceMapContent = YES;
 
     if(self.minimumZ) {
         self.tileOverlay.minimumZ = self.minimumZ;
