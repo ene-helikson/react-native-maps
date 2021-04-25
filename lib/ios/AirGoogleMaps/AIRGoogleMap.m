@@ -814,9 +814,9 @@ id regionAsJSON(MKCoordinateRegion region) {
 
 + (NSString *)GetIconUrl:(GMUPlacemark *) marker parser:(GMUKMLParser *) parser {
 #ifdef HAVE_GOOGLE_MAPS_UTILS
-  if (marker.style.styleID != nil) {
+  if (marker.styleUrl != nil) {
     for (GMUStyle *style in parser.styles) {
-      if (style.styleID == marker.style.styleID) {
+      if ([style.styleID isEqualToString:marker.styleUrl]) {
         return style.iconUrl;
       }
     }
@@ -836,14 +836,13 @@ id regionAsJSON(MKCoordinateRegion region) {
 #ifdef HAVE_GOOGLE_MAPS_UTILS
 
   _kmlSrc = kmlUrl;
-
-  NSURL *url = [NSURL URLWithString:kmlUrl];
   NSData *urlData = nil;
-
-  if ([url isFileURL]) {
+  
+  if ([kmlUrl hasPrefix:@"http"]) {
+    NSURL *url = [NSURL URLWithString:kmlUrl];
     urlData = [NSData dataWithContentsOfURL:url];
   } else {
-    urlData = [[NSFileManager defaultManager] contentsAtPath:kmlUrl];
+    urlData = [NSData dataWithContentsOfFile:kmlUrl];
   }
 
   GMUKMLParser *parser = [[GMUKMLParser alloc] initWithData:urlData];
@@ -870,10 +869,10 @@ id regionAsJSON(MKCoordinateRegion region) {
     marker.layer.position = CGPointZero;
 
     [self insertReactSubview:(UIView *) marker atIndex:index];
-
-    [markers addObject:@{@"id": marker.identifier,
-                         @"title": marker.title,
-                         @"description": marker.subtitle,
+    
+    [markers addObject:@{@"id": marker.identifier == nil ? @"" : marker.identifier,
+                         @"title": marker.title == nil ? @"" : marker.title,
+                         @"description": marker.subtitle == nil ? @"" : marker.subtitle,
                          @"coordinate": @{
                              @"latitude": @(location.latitude),
                              @"longitude": @(location.longitude)
