@@ -44,28 +44,26 @@ class DisplayLatLng extends React.Component {
   }
 
   animateRandomCoordinate() {
-    this.map.animateCamera({ center: this.randomCoordinate() });
+    this.map.animateToCoordinate(this.randomCoordinate());
   }
 
   animateToRandomBearing() {
-    this.map.animateCamera({ heading: this.getRandomFloat(-360, 360) });
+    this.map.animateToBearing(this.getRandomFloat(-360, 360));
   }
 
   animateToRandomViewingAngle() {
-    this.map.animateCamera({ pitch: this.getRandomFloat(0, 90) });
+    this.map.animateToViewingAngle(this.getRandomFloat(0, 90));
   }
 
   getRandomFloat(min, max) {
-    return Math.random() * (max - min) + min;
+    return (Math.random() * (max - min)) + min;
   }
 
   randomCoordinate() {
     const region = this.state.region;
     return {
-      latitude:
-        region.latitude + (Math.random() - 0.5) * (region.latitudeDelta / 2),
-      longitude:
-        region.longitude + (Math.random() - 0.5) * (region.longitudeDelta / 2),
+      latitude: region.latitude + ((Math.random() - 0.5) * (region.latitudeDelta / 2)),
+      longitude: region.longitude + ((Math.random() - 0.5) * (region.longitudeDelta / 2)),
     };
   }
 
@@ -81,16 +79,14 @@ class DisplayLatLng extends React.Component {
       <View style={styles.container}>
         <MapView
           provider={this.props.provider}
-          ref={ref => {
-            this.map = ref;
-          }}
+          ref={ref => { this.map = ref; }}
           mapType={MAP_TYPES.TERRAIN}
           style={styles.map}
           initialRegion={this.state.region}
           onRegionChange={region => this.onRegionChange(region)}
         />
         <View style={[styles.bubble, styles.latlng]}>
-          <Text style={styles.centeredText}>
+          <Text style={{ textAlign: 'center' }}>
             {this.state.region.latitude.toPrecision(7)},
             {this.state.region.longitude.toPrecision(7)}
           </Text>
@@ -170,7 +166,6 @@ const styles = StyleSheet.create({
   buttonText: {
     textAlign: 'center',
   },
-  centeredText: { textAlign: 'center' },
 });
 
 export default DisplayLatLng;

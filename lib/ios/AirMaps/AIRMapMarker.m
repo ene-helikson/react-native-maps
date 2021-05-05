@@ -14,26 +14,17 @@
 #import <React/RCTImageLoader.h>
 #import <React/RCTUtils.h>
 #import <React/UIView+React.h>
-
-NSInteger const AIR_CALLOUT_OPEN_ZINDEX_BASELINE = 999;
+NSInteger const CALLOUT_OPEN_ZINDEX_BASELINE = 999;
 
 @implementation AIREmptyCalloutBackgroundView
+bool _calloutIsOpen = NO;
+NSInteger _zIndexBeforeOpen = 0;
 @end
 
 @implementation AIRMapMarker {
     BOOL _hasSetCalloutOffset;
     RCTImageLoaderCancellationBlock _reloadImageCancellationBlock;
     MKPinAnnotationView *_pinView;
-    BOOL _calloutIsOpen;
-    NSInteger _zIndexBeforeOpen;
-}
-
-- (instancetype)initWithFrame:(CGRect)frame {
-    self = [super initWithFrame:frame];
-    if (self) {
-        [self.layer addObserver:self forKeyPath:@"zPosition" options:NSKeyValueObservingOptionNew context:nil];
-    }
-    return self;
 }
 
 - (void)reactSetFrame:(CGRect)frame
@@ -151,11 +142,10 @@ NSInteger const AIR_CALLOUT_OPEN_ZINDEX_BASELINE = 999;
 {
     _calloutIsOpen = YES;
     [self setZIndex:_zIndexBeforeOpen];
-
+    
     MKAnnotationView *annotationView = [self getAnnotationView];
 
     [self setSelected:YES animated:NO];
-    [self.map selectAnnotation:self animated:NO];
 
     id event = @{
             @"action": @"marker-select",
@@ -203,49 +193,23 @@ NSInteger const AIR_CALLOUT_OPEN_ZINDEX_BASELINE = 999;
 - (void)_handleTap:(UITapGestureRecognizer *)recognizer {
     AIRMapMarker *marker = self;
     if (!marker) return;
-
+    
     if (marker.selected) {
         CGPoint touchPoint = [recognizer locationInView:marker.map.calloutView];
-        CGRect bubbleFrame = [self.calloutView convertRect:marker.map.calloutView.bounds toView:marker.map];
-        CGPoint touchPointReal = [recognizer locationInView:self.calloutView];
-
-        UIView *calloutView = [marker.map.calloutView hitTest:touchPoint withEvent:nil];
-        if (calloutView) {
-            // the callout (or its subview) got clicked, not the marker
-            UIWindow* win = [[[UIApplication sharedApplication] windows] firstObject];
-            AIRMapCalloutSubview* calloutSubview = nil;
-            UIView* tmp = calloutView;
-            while (tmp && tmp != win && tmp != self.calloutView && tmp != self.map) {
-                if ([tmp respondsToSelector:@selector(onPress)]) {
-                    calloutSubview = (AIRMapCalloutSubview*) tmp;
-                    break;
-                }
-                tmp = tmp.superview;
-            }
-
+        if ([marker.map.calloutView hitTest:touchPoint withEvent:nil]) {
+            
+            // the callout got clicked, not the marker
             id event = @{
-                         @"action": calloutSubview ? @"callout-inside-press" : @"callout-press",
-                         @"id": marker.identifier ?: @"unknown",
-                         @"point": @{
-                                 @"x": @(touchPointReal.x),
-                                 @"y": @(touchPointReal.y),
-                                 },
-                         @"frame": @{
-                             @"x": @(bubbleFrame.origin.x),
-                             @"y": @(bubbleFrame.origin.y),
-                             @"width": @(bubbleFrame.size.width),
-                             @"height": @(bubbleFrame.size.height),
-                             }
+                         @"action": @"callout-press",
                          };
-
-            if (calloutSubview) calloutSubview.onPress(event);
+            
             if (marker.onCalloutPress) marker.onCalloutPress(event);
             if (marker.calloutView && marker.calloutView.onPress) marker.calloutView.onPress(event);
             if (marker.map.onCalloutPress) marker.map.onCalloutPress(event);
             return;
         }
     }
-
+    
     // the actual marker got clicked
     id event = @{
                  @"action": @"marker-press",
@@ -255,10 +219,10 @@ NSInteger const AIR_CALLOUT_OPEN_ZINDEX_BASELINE = 999;
                          @"longitude": @(marker.coordinate.longitude)
                          }
                  };
-
+    
     if (marker.onPress) marker.onPress(event);
     if (marker.map.onMarkerPress) marker.map.onMarkerPress(event);
-
+    
     [marker.map selectAnnotation:marker animated:NO];
 }
 
@@ -270,7 +234,6 @@ NSInteger const AIR_CALLOUT_OPEN_ZINDEX_BASELINE = 999;
     [self.map.calloutView dismissCalloutAnimated:YES];
 
     [self setSelected:NO animated:NO];
-    [self.map deselectAnnotation:self animated:NO];
 
     id event = @{
             @"action": @"marker-deselect",
@@ -314,7 +277,7 @@ NSInteger const AIR_CALLOUT_OPEN_ZINDEX_BASELINE = 999;
         _reloadImageCancellationBlock();
         _reloadImageCancellationBlock = nil;
     }
-    _reloadImageCancellationBlock = [[_bridge moduleForName:@"ImageLoader"] loadImageWithURLRequest:[RCTConvert NSURLRequest:_imageSrc]
+    _reloadImageCancellationBlock = [_bridge.imageLoader loadImageWithURLRequest:[RCTConvert NSURLRequest:_imageSrc]
                                                                             size:self.bounds.size
                                                                            scale:RCTScreenScale()
                                                                          clipped:YES
@@ -344,22 +307,8 @@ NSInteger const AIR_CALLOUT_OPEN_ZINDEX_BASELINE = 999;
 - (void)setZIndex:(NSInteger)zIndex
 {
     _zIndexBeforeOpen = zIndex;
-    _zIndex = _calloutIsOpen ? zIndex + AIR_CALLOUT_OPEN_ZINDEX_BASELINE : zIndex;
+    _zIndex = _calloutIsOpen ? zIndex + CALLOUT_OPEN_ZINDEX_BASELINE : zIndex;
     self.layer.zPosition = zIndex;
-}
-
-- (BOOL)isSelected {
-  return _isPreselected || [super isSelected];
-}
-
-- (void)dealloc {
-    [self.layer removeObserver:self forKeyPath:@"zPosition"];
-}
-
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
-    if ([keyPath isEqualToString:@"zPosition"]) {
-        self.layer.zPosition = _zIndex;
-    }
 }
 
 @end

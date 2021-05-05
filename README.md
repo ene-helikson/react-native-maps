@@ -2,10 +2,6 @@
 
 React Native Map components for iOS + Android
 
-
-# :warning: Maintainers Wanted [![Maintainers Wanted](https://img.shields.io/badge/maintainers-wanted-red.svg)](https://github.com/react-native-maps/react-native-maps/issues/3564)
-We are in need of more people or companies willing to help. If you have enough time and knowledge, and want to become a maintainer, please let us know [here](https://github.com/react-native-maps/react-native-maps/issues/3564).
- 
 ## Installation
 
 See [Installation Instructions](docs/installation.md).
@@ -19,6 +15,12 @@ support this module on anything but the latest version of React Native. With tha
 our best to stay compatible with older versions as much that is practical, and the peer dependency
 of this requirement is set to `"react-native": "*"` explicitly for this reason. If you are using
 an older version of React Native with this module though, some features may be buggy.
+
+### Note about React requires
+
+Since react-native 0.25.0, `React` should be required from `node_modules`.
+React Native versions from 0.18 should be working out of the box, for lower
+versions you should add `react` as a dependency in your `package.json`.
 
 ## Component API
 
@@ -35,10 +37,6 @@ an older version of React Native with this module though, some features may be b
 [`<Circle />` Component API](docs/circle.md)
 
 [`<Overlay />` Component API](docs/overlay.md)
-
-[`<Heatmap />` Component API](docs/heatmap.md)
-
-[`<Geojson />` Component API](docs/geojson.md)
 
 ## General Usage
 
@@ -106,9 +104,8 @@ import { Marker } from 'react-native-maps';
   region={this.state.region}
   onRegionChange={this.onRegionChange}
 >
-  {this.state.markers.map((marker, index) => (
+  {this.state.markers.map(marker => (
     <Marker
-      key={index}
       coordinate={marker.latlng}
       title={marker.title}
       description={marker.description}
@@ -117,26 +114,21 @@ import { Marker } from 'react-native-maps';
 </MapView>
 ```
 
-### Rendering a Marker with a custom image
-1. You need to generate an `png` image with various resolution (lets call them `custom_pin`) - for more infromation go to [Android](https://developer.android.com/studio/write/image-asset-studio#access), [iOS](https://developer.apple.com/library/archive/documentation/ToolsLanguages/Conceptual/Xcode_Overview/AddingImages.html)
-2. put all images in Android drawables and iOS assets dir 
-3. Now you can use the following code:
-```jsx
-<Marker
-  coordinate={{ latitude : latitude , longitude : longitude }}
-  image={{uri: 'custom_pin'}}
-/>
-```
-
-Note: You can also pass the image binary data like `image={require('custom_pin.png')}`, but this will not scale good with the different screen sizes.
-
 ### Rendering a Marker with a custom view
-Note: This has performance implications, if you wish for a simpler solution go with a custom image (save your self the head ache)
 
 ```jsx
-<Marker coordinate={{ latitude : latitude , longitude : longitude }}>
+<Marker coordinate={marker.latlng}>
   <MyCustomMarkerView {...marker} />
 </Marker>
+```
+
+### Rendering a Marker with a custom image
+
+```jsx
+<Marker
+  coordinate={marker.latlng}
+  image={require('../assets/pin.png')}
+/>
 ```
 
 ### Rendering a custom Marker with a custom Callout
@@ -175,21 +167,16 @@ import { UrlTile } from 'react-native-maps';
   onRegionChange={this.onRegionChange}
 >
   <UrlTile
-    /**
-     * The url template of the tile server. The patterns {x} {y} {z} will be replaced at runtime
-     * For example, http://c.tile.openstreetmap.org/{z}/{x}/{y}.png
-     */
+   /**
+   * The url template of the tile server. The patterns {x} {y} {z} will be replaced at runtime
+   * For example, http://c.tile.openstreetmap.org/{z}/{x}/{y}.png
+   */
     urlTemplate={this.state.urlTemplate}
     /**
      * The maximum zoom level for this tile overlay. Corresponds to the maximumZ setting in
      * MKTileOverlay. iOS only.
      */
     maximumZ={19}
-    /**
-     * flipY allows tiles with inverted y coordinates (origin at bottom left of map)
-     * to be used. Its default value is false.
-     */
-    flipY={false}
   />
 </MapView>
 ```
@@ -234,23 +221,6 @@ For Android: LocalTile is still just overlay over original map tiles. It means t
 
 See [OSM Wiki](https://wiki.openstreetmap.org/wiki/Category:Tile_downloading) for how to download tiles for offline usage.
 
-### Overlaying other components on the map
-
-Place components you that wish to overlay `MapView` underneath the `MapView` closing tag. Absolutely position these elements.
-
-```jsx
-render() {
-  return (
-    <MapView
-      region={this.state.region}
-    />
-    <OverlayComponent
-      style={{position: “absolute”, bottom: 50}}
-    />
-  );
-}
-```
-
 ### Customizing the map style
 
 Create the json object, or download a generated one from the [google style generator](https://mapstyle.withgoogle.com/).
@@ -284,9 +254,25 @@ import MapView, { PROVIDER_GOOGLE } from 'react-native-maps'
 
 Then add the AirGoogleMaps directory:
 
-https://github.com/react-native-maps/react-native-maps/blob/1e71a21f39e7b88554852951f773c731c94680c9/docs/installation.md#ios
+https://github.com/airbnb/react-native-maps/blob/1e71a21f39e7b88554852951f773c731c94680c9/docs/installation.md#ios
 
 An unofficial step-by-step guide is also available at https://gist.github.com/heron2014/e60fa003e9b117ce80d56bb1d5bfe9e0
+
+## Examples
+
+To run examples:
+
+```bash
+npm i
+npm start 
+
+#Android
+npm run run:android
+
+#iOS
+npm run build:ios
+npm run run:ios
+```
 
 ### MapView Events
 
@@ -387,9 +373,6 @@ the `<Marker />`'s `title` and `description` props.
 Custom callout views can be the entire tooltip bubble, or just the content inside of the system
 default bubble.
 
-To handle press on specific subview of callout use `<CalloutSubview />` with `onPress`.
-See `Callouts.js` example.
-
 ![](http://i.giphy.com/xT77XNePGnMIIDpbnq.gif) ![](http://i.giphy.com/xT77YdU0HXryvoRqaQ.gif)
 
 
@@ -413,12 +396,6 @@ Markers are draggable, and emit continuous drag events to update other UI during
 Enable lite mode on Android with `liteMode` prop. Ideal when having multiple maps in a View or ScrollView.
 
 ![](http://i.giphy.com/qZ2lAf18s89na.gif)
-
-### On Poi Click (Google Maps Only)
-
-Poi are clickable, you can catch the event to get its information (usually to get the full detail from Google Place using the placeId).
-
-![](https://media.giphy.com/media/3480VsCKnHr31uCLU3/giphy.gif)
 
 ### Animated Region
 
@@ -474,7 +451,7 @@ componentWillReceiveProps(nextProps) {
   if (this.props.coordinate !== nextProps.coordinate) {
     if (Platform.OS === 'android') {
       if (this.marker) {
-        this.marker.animateMarkerToCoordinate(
+        this.marker._component.animateMarkerToCoordinate(
           nextProps.coordinate,
           duration
         );
@@ -511,7 +488,7 @@ componentWillReceiveProps(nextProps) {
   if (this.props.coordinate !== nextProps.coordinate) {
     if (Platform.OS === 'android') {
       if (this.marker) {
-        this.marker.animateMarkerToCoordinate(
+        this.marker._component.animateMarkerToCoordinate(
           nextProps.coordinate,
           duration
         );
@@ -600,8 +577,8 @@ Pass an array of coordinates to focus a map region on said coordinates.
 
 * Make sure that you have [properly installed](docs/installation.md) react-native-maps.
 * Check in the logs if there is more informations about the issue.
-* Try setting the style of the MapView to an absolute position with top, left, right and bottom  values set.
-*   Make sure you have enabled Google Maps API in [Google developer console](https://console.developers.google.com/apis/library)
+* Try setting the style of the MapView to an absolute position with top, left, right and bottom values set.
+* Make sure you have enabled Google Maps API in ![Google developer console](https://console.developers.google.com/apis/library)
 
 ```javascript
 const styles = StyleSheet.create({
@@ -640,29 +617,6 @@ Good:
 </View>
 ```
 
-### Children Components Not Re-Rendering
-Components that aren't declared by this library (Ex: Markers, Polyline) must not be children of the MapView component due to MapView's unique rendering methodology. Have your custom components / views outside the MapView component and position absolute to ensure they only re-render as needed.
-Example:
-Bad:
-
-```jsx
-  <View style={StyleSheet.absoluteFillObject}>
-    <MapView style={StyleSheet.absoluteFillObject}>
-      <View style={{ position: 'absolute', top: 100, left: 50 }}/>
-    </MapView>
-  </View>
-```
-
-Good:
-
-```jsx
-  <View style={StyleSheet.absoluteFillObject}>
-    <MapView style={StyleSheet.absoluteFillObject} />
-    <View style={{ position: 'absolute', top: 100, left: 50 }}/>
-  </View>
-```
-
-Source: https://github.com/react-native-maps/react-native-maps/issues/1901
 
 License
 --------

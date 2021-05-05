@@ -3,8 +3,6 @@ package com.airbnb.android.react.maps;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Point;
-import android.location.Address;
-import android.location.Geocoder;
 import android.net.Uri;
 import android.util.Base64;
 import android.util.DisplayMetrics;
@@ -16,12 +14,11 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
-import com.facebook.react.module.annotations.ReactModule;
 import com.facebook.react.uimanager.NativeViewHierarchyManager;
 import com.facebook.react.uimanager.UIBlock;
 import com.facebook.react.uimanager.UIManagerModule;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.io.ByteArrayOutputStream;
@@ -30,16 +27,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
 import javax.annotation.Nullable;
 
-@ReactModule(name = AirMapModule.NAME)
 public class AirMapModule extends ReactContextBaseJavaModule {
 
-  public static final String NAME = "AirMapModule";
   private static final String SNAPSHOT_RESULT_FILE = "file";
   private static final String SNAPSHOT_RESULT_BASE64 = "base64";
   private static final String SNAPSHOT_FORMAT_PNG = "png";
@@ -51,7 +45,7 @@ public class AirMapModule extends ReactContextBaseJavaModule {
 
   @Override
   public String getName() {
-    return NAME;
+    return "AirMapModule";
   }
 
   @Override
@@ -147,103 +141,13 @@ public class AirMapModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getCamera(final int tag, final Promise promise) {
-    final ReactApplicationContext context = getReactApplicationContext();
-
-    UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
-    uiManager.addUIBlock(new UIBlock()
-    {
-      @Override
-      public void execute(NativeViewHierarchyManager nvhm)
-      {
-        AirMapView view = (AirMapView) nvhm.resolveView(tag);
-        if (view == null) {
-          promise.reject("AirMapView not found");
-          return;
-        }
-        if (view.map == null) {
-          promise.reject("AirMapView.map is not valid");
-          return;
-        }
-
-        CameraPosition position = view.map.getCameraPosition();
-
-        WritableMap centerJson = new WritableNativeMap();
-        centerJson.putDouble("latitude", position.target.latitude);
-        centerJson.putDouble("longitude", position.target.longitude);
-
-        WritableMap cameraJson = new WritableNativeMap();
-        cameraJson.putMap("center", centerJson);
-        cameraJson.putDouble("heading", (double)position.bearing);
-        cameraJson.putDouble("zoom", (double)position.zoom);
-        cameraJson.putDouble("pitch", (double)position.tilt);
-
-        promise.resolve(cameraJson);
-      }
-    });
-  }
-
-  @ReactMethod
-  public void getAddressFromCoordinates(final int tag, final ReadableMap coordinate, final Promise promise) {
-    final ReactApplicationContext context = getReactApplicationContext();
-
-    UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
-    uiManager.addUIBlock(new UIBlock()
-    {
-      @Override
-      public void execute(NativeViewHierarchyManager nvhm)
-      {
-        AirMapView view = (AirMapView) nvhm.resolveView(tag);
-        if (view == null) {
-          promise.reject("AirMapView not found");
-          return;
-        }
-        if (view.map == null) {
-          promise.reject("AirMapView.map is not valid");
-          return;
-        }
-        if (coordinate == null ||
-                !coordinate.hasKey("latitude") ||
-                !coordinate.hasKey("longitude")) {
-          promise.reject("Invalid coordinate format");
-          return;
-        }
-        Geocoder geocoder = new Geocoder(context);
-        try {
-          List<Address> list =
-                  geocoder.getFromLocation(coordinate.getDouble("latitude"),coordinate.getDouble("longitude"),1);
-          Address address = list.get(0);
-
-          WritableMap addressJson = new WritableNativeMap();
-          addressJson.putString("name", address.getFeatureName());
-          addressJson.putString("locality", address.getLocality());
-          addressJson.putString("thoroughfare", address.getThoroughfare());
-          addressJson.putString("subThoroughfare", address.getSubThoroughfare());
-          addressJson.putString("subLocality", address.getSubLocality());
-          addressJson.putString("administrativeArea", address.getAdminArea());
-          addressJson.putString("subAdministrativeArea", address.getSubAdminArea());
-          addressJson.putString("postalCode", address.getPostalCode());
-          addressJson.putString("countryCode", address.getCountryCode());
-          addressJson.putString("country", address.getCountryName());
-
-          promise.resolve(addressJson);
-        } catch (IOException e) {
-          promise.reject("Can not get address location");
-        }
-      }
-    });
-  }
-
-  @ReactMethod
   public void pointForCoordinate(final int tag, ReadableMap coordinate, final Promise promise) {
-    final ReactApplicationContext context = getReactApplicationContext();
-    final double density = (double) context.getResources().getDisplayMetrics().density;
-
     final LatLng coord = new LatLng(
             coordinate.hasKey("latitude") ? coordinate.getDouble("latitude") : 0.0,
             coordinate.hasKey("longitude") ? coordinate.getDouble("longitude") : 0.0
     );
 
+    final ReactApplicationContext context = getReactApplicationContext();
     UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
     uiManager.addUIBlock(new UIBlock()
     {
@@ -263,8 +167,8 @@ public class AirMapModule extends ReactContextBaseJavaModule {
         Point pt = view.map.getProjection().toScreenLocation(coord);
 
         WritableMap ptJson = new WritableNativeMap();
-        ptJson.putDouble("x", (double)pt.x / density);
-        ptJson.putDouble("y", (double)pt.y / density);
+        ptJson.putDouble("x", pt.x);
+        ptJson.putDouble("y", pt.y);
 
         promise.resolve(ptJson);
       }
@@ -273,14 +177,12 @@ public class AirMapModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void coordinateForPoint(final int tag, ReadableMap point, final Promise promise) {
-    final ReactApplicationContext context = getReactApplicationContext();
-    final double density = (double) context.getResources().getDisplayMetrics().density;
-
     final Point pt = new Point(
-            point.hasKey("x") ? (int)(point.getDouble("x") * density) : 0,
-            point.hasKey("y") ? (int)(point.getDouble("y") * density) : 0
+            point.hasKey("x") ? point.getInt("x") : 0,
+            point.hasKey("y") ? point.getInt("y") : 0
     );
 
+    final ReactApplicationContext context = getReactApplicationContext();
     UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
     uiManager.addUIBlock(new UIBlock()
     {
@@ -306,45 +208,6 @@ public class AirMapModule extends ReactContextBaseJavaModule {
         coordJson.putDouble("longitude", coord.longitude);
 
         promise.resolve(coordJson);
-      }
-    });
-  }
-
-  @ReactMethod
-  public void getMapBoundaries(final int tag, final Promise promise) {
-    final ReactApplicationContext context = getReactApplicationContext();
-
-    UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
-    uiManager.addUIBlock(new UIBlock()
-    {
-      @Override
-      public void execute(NativeViewHierarchyManager nvhm)
-      {
-        AirMapView view = (AirMapView) nvhm.resolveView(tag);
-        if (view == null) {
-          promise.reject("AirMapView not found");
-          return;
-        }
-        if (view.map == null) {
-          promise.reject("AirMapView.map is not valid");
-          return;
-        }
-
-        double[][] boundaries = view.getMapBoundaries();
-
-        WritableMap coordinates = new WritableNativeMap();
-        WritableMap northEastHash = new WritableNativeMap();
-        WritableMap southWestHash = new WritableNativeMap();
-
-        northEastHash.putDouble("longitude", boundaries[0][0]);
-        northEastHash.putDouble("latitude", boundaries[0][1]);
-        southWestHash.putDouble("longitude", boundaries[1][0]);
-        southWestHash.putDouble("latitude", boundaries[1][1]);
-
-        coordinates.putMap("northEast", northEastHash);
-        coordinates.putMap("southWest", southWestHash);
-
-        promise.resolve(coordinates);
       }
     });
   }
